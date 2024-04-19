@@ -1,3 +1,5 @@
+import time
+
 import cv2
 import gymnasium as gym
 import numpy as np
@@ -14,10 +16,11 @@ class FlappyBirdEnv(gym.Env):
         # Initialize the FlappyBirdCanvasCapture object
         self.canvas = FlappyBirdCanvasCapture()
         self.canvas.start()
+        self.captured_image = None
 
 
         # 83x100
-        self.observation_space = spaces.Box(low=0, high=255, shape=(1, 120, 100), dtype=np.uint8)
+        self.observation_space = spaces.Box(low=0, high=255, shape=(1, 60, 50), dtype=np.uint8)
 
         # 0: flap, 1: do nothing
         self.action_space = spaces.Discrete(2)
@@ -49,25 +52,33 @@ class FlappyBirdEnv(gym.Env):
             reward = -100
         else:
             reward = 1
-
         return new_observation, reward, done, False , {}
 
 
     def get_observation(self):
         raw = self.canvas.capture_canvas_images()[:,:,:3].astype(np.uint8)
+        self.captured_image = raw
 
         gray = cv2.cvtColor(raw, cv2.COLOR_BGR2GRAY)
 
-        resized = cv2.resize(gray, (100, 120), interpolation=cv2.INTER_AREA)
+        resized = cv2.resize(gray, (50, 60))
 
-        channel = np.reshape(resized, (1, 120, 100))
+        channel = np.reshape(resized, (1, 60, 50))
 
         return channel
 
     def render(self):
-        return self.render()
+        cv2.imshow("Flappy Bird", self.captured_image)
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            self.close()
 
     def close(self):
-        return self.close()
+        cv2.destroyAllWindows()
 
 
+
+if __name__ == "__main__":
+    env = FlappyBirdEnv()
+    obs = env.reset()
+    for i in range(10):
+        env.get_observation()
