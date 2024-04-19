@@ -1,0 +1,34 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Sanal ortam dosyaları
+venv/
+.env/
+
+# Proje belgeleri ve geçici dosyalar
+*.log
+*.swp
+*.swo
+*.DS_Store
+
+# IDE ve editör belgeleri
+.vscode/
+.idea/
+
+# Bağımlılıkların toplandığı dosyalar
+*.pyc
+*.pyo
+*.pyd
+*.pyz
+*.pyzw
+*.exe
+*.dll
+*.so
+*.lib
+*.dylib
+*.bak
+*.swp
+*.swo
+*.log
