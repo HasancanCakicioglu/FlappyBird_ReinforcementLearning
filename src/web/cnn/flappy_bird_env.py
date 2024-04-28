@@ -1,12 +1,9 @@
-import time
-
 import cv2
 import gymnasium as gym
 import numpy as np
 from gymnasium import spaces
-from matplotlib import pyplot as plt
 
-from src.web.flappybird_canvas_capture import FlappyBirdCanvasCapture
+from src.web.cnn.flappybird_canvas_capture import FlappyBirdCanvasCapture
 
 
 class FlappyBirdEnv(gym.Env):

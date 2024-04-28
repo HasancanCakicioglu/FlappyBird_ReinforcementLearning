@@ -1,7 +1,7 @@
-from stable_baselines3 import DQN, PPO
+from stable_baselines3 import PPO
 from src.config import CHECKPOINT_DIR, LOG_DIR
 from src.callbacks.train_and_logging_callback import TrainAndLoggingCallback
-from src.web.flappy_bird_env import FlappyBirdEnv
+from src.web.cnn.flappy_bird_env import FlappyBirdEnv
 
 
 

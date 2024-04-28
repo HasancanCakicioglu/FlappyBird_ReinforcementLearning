@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 
-from src.web.flappybird_canvas_capture import FlappyBirdCanvasCapture
+from src.web.cnn.flappybird_canvas_capture import FlappyBirdCanvasCapture
 
 
 @pytest.fixture(scope="class")
