@@ -1,3 +1,5 @@
+from datetime import datetime
+
 import numpy as np
 from stable_baselines3 import PPO, DQN
 from stable_baselines3.common.monitor import Monitor
@@ -19,7 +21,7 @@ env = Monitor(env, LOG_DIR)
 
 # Wrap the environment with StackedObservations
 # Vec env wrapper ile env sarmalama
-env = DummyVecEnv([lambda: env])
+#env = DummyVecEnv([lambda: env])
 
 
 # Frame stacking parameters
@@ -27,10 +29,10 @@ env = DummyVecEnv([lambda: env])
 #n_stack = 4  # Number of frames to stack
 #env = VecFrameStack(env, n_stack)
 
-model = PPO("MlpPolicy", env, verbose=1, tensorboard_log=LOG_DIR, learning_rate=4.214440048691114e-05,batch_size=68,ent_coef=0.0017023611604857693,gamma=0.9346318407850721)
+#model = PPO("MlpPolicy", env, verbose=1, tensorboard_log=LOG_DIR,learning_rate=0.0003)
 #model = DQN("MlpPolicy", env, verbose=1, tensorboard_log=LOG_DIR, learning_rate=0.001, buffer_size=300_000, learning_starts=0,exploration_fraction=0.1)
 #model = DQN.load("src/checkpoints/best_model_ppo_1000000.zip",env)
-#model = PPO.load("src/checkpoints/best_model_700000.zip",ent_coef=0.01,env=env)
+model = PPO.load("src/saved_models/best_model_ppo_1_000_000.zip",ent_coef=0.01,env=env,learning_rate=0.0003,verbose=1,tensorboard_log=LOG_DIR)
 
-model.learn(total_timesteps=1_000_000, callback=callback)
+model.learn(total_timesteps=1_000_000, callback=callback,tb_log_name=datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
 model.save("src/saved_models/best_model_ppo_1_000_000.zip")

@@ -102,7 +102,7 @@ class Ground(pygame.sprite.Sprite):
 class Pipe(pygame.sprite.Sprite):
     def __init__(self,screen_width,sprites_asset,x=0,*groups):
         self._layer = Layer.OBSTACLE
-        self.gap = 130
+        self.gap = 150
 
         self.SCREEN_WIDTH = screen_width
         self.sprite = get_sprite(sprites_asset,"pipe")
@@ -129,7 +129,6 @@ class Pipe(pygame.sprite.Sprite):
     def update(self):
         self.rect.x -= 3
         if self.rect.right <= 0:
-            print("Killed")
             self.kill()
 
     def is_passed(self):
@@ -147,7 +146,7 @@ class FlappyBirdMlpLocalEnv(gym.Env):
         super().__init__()
 
         # 83x100
-        self.observation_space = spaces.Box(low=-400, high=1800, shape=(6,), dtype=np.float16)
+        self.observation_space = spaces.Box(low=-50, high=1000, shape=(4,), dtype=np.float16)
 
         # 0: flap, 1: do nothing
         self.action_space = spaces.Discrete(2)
@@ -173,6 +172,7 @@ class FlappyBirdMlpLocalEnv(gym.Env):
         self.grounds = None
         self.score = 0
         self.game_over = False
+
 
         pygame.init()
         self.sprites_asset = load_sprite(self.sprites_asset)
@@ -234,12 +234,18 @@ class FlappyBirdMlpLocalEnv(gym.Env):
 
         check_pipe_count(self.SCREEN_WIDTH,self.sprites_asset,self.sprites)
         self.sprites.update()
+        reward = 0
+        for sprite in self.sprites:
+            if isinstance(sprite,Pipe):
+                if not sprite.is_passed():
+                    next_pipe_reward = sprite
+                    reward = self.calculate_score(self.bird.rect.y,next_pipe_reward.rect.center[1])
+                    break
 
-        reward = 1
 
         if self.bird.check_collision(self.sprites) or self.bird.rect.y < 0 :
             self.game_over = True
-            reward = -100
+            reward = -10
 
         return self.get_observation(), reward, self.game_over, False , {}
 
@@ -250,16 +256,11 @@ class FlappyBirdMlpLocalEnv(gym.Env):
                 if not sprite.is_passed():
                     next_pipe = sprite
                     break
-
-
-
         return np.array([
             self.bird.rect.y,
-            self.bird.flap,
-            next_pipe.rect.x,
-            next_pipe.rect.y,
-            next_pipe.rect.x- self.bird.rect.x,
-            next_pipe.rect.y - self.bird.rect.y
+            format(self.bird.flap, ".2f"),
+            next_pipe.rect.x - self.bird.rect.x,
+            self.bird.rect.y-next_pipe.rect.center[1]
         ],dtype=np.float16)
 
     def render(self,mode="human"):
@@ -275,6 +276,21 @@ class FlappyBirdMlpLocalEnv(gym.Env):
             pygame.display.flip()
             self.clock.tick(self.SCREEN_FPS)
 
+    def calculate_score(self,bird_y, pipe_center_y):
+        # Mesafeyi hesapla
+        distance = abs(bird_y - pipe_center_y)
+
+        # Burada max_distance değeri, en uzak mesafe olarak kabul edilecek değeri belirler.
+        # max_distance ne kadar büyükse, mesafeye göre puan o kadar düşük olur.
+        max_distance = 250  # Bu değeri ihtiyacınıza göre ayarlayabilirsiniz.
+
+        # Mesafe ne kadar küçükse, puan o kadar yüksek olur.
+        # Mesafe büyükse, puan küçük olur.
+        # Mesafe sıfırsa (yani bird_y == pipe_center_y), puan maksimum olur.
+        score = max(0, (max_distance - distance) / max_distance * 100) /100
+
+        return score
+
 
     def close(self):
         pygame.quit()
@@ -287,10 +303,14 @@ if __name__ == "__main__":
     env.render()
     obs = env.reset()
     for i in range(10000):
-        action = env.action_space.sample()
+        #action = env.action_space.sample()
+        if i % 45 == 0:
+            action = 0
+        else:
+            action = 1
         env.render()
         obs, reward, done, _ , info = env.step(action)
-
+        time.sleep(0.1)
         if done:
             print("Game Over")
             env.reset()
