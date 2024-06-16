@@ -10,7 +10,7 @@ from src.local.game.layer import Layer
 class Pipe(pygame.sprite.Sprite):
     def __init__(self,x=0,*groups):
         self._layer = Layer.OBSTACLE
-        self.gap = 130
+        self.gap = 120
 
         self.sprite = assets.get_sprite("pipe")
         self.sprite_rect = self.sprite.get_rect()

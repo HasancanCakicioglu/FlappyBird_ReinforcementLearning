@@ -102,7 +102,7 @@ class Ground(pygame.sprite.Sprite):
 class Pipe(pygame.sprite.Sprite):
     def __init__(self,screen_width,sprites_asset,x=0,*groups):
         self._layer = Layer.OBSTACLE
-        self.gap = 150
+        self.gap = 120
 
         self.SCREEN_WIDTH = screen_width
         self.sprite = get_sprite(sprites_asset,"pipe")
@@ -132,7 +132,7 @@ class Pipe(pygame.sprite.Sprite):
             self.kill()
 
     def is_passed(self):
-        if self.rect.x < 50 and not self.passed:
+        if self.rect.right < 100:
             self.passed = True
             return True
         return False
@@ -140,18 +140,37 @@ class Pipe(pygame.sprite.Sprite):
     def get_data(self):
         return self.pipe_bottom_rect.x,self.pipe_bottom_rect.y,self.pipe_top_rect.y
 
+    def get_pipe_coordinates(self):
+        # Üst borunun alt köşeleri
+        top_pipe_bottom_left = (self.rect.x, self.rect.y + self.sprite_rect.height)
+        top_pipe_bottom_right = (self.rect.x + self.sprite_rect.width, self.rect.y + self.sprite_rect.height)
+
+        # Alt borunun üst köşeleri
+        bottom_pipe_top_left = (self.rect.x, self.rect.y + self.sprite_rect.height + self.gap)
+        bottom_pipe_top_right = (self.rect.x + self.sprite_rect.width, self.rect.y + self.sprite_rect.height + self.gap)
+
+        return {
+            'top_pipe_bottom_left': top_pipe_bottom_left,
+            'top_pipe_bottom_right': top_pipe_bottom_right,
+            'bottom_pipe_top_left': bottom_pipe_top_left,
+            'bottom_pipe_top_right': bottom_pipe_top_right
+        }
+
 class FlappyBirdMlpLocalEnv(gym.Env):
     metadata = {"render_modes": ["human"], "name": "FlappyBirdMlpLocalEnv_v0"}
-    def __init__(self):
+    def __init__(self,env_config=1):
         super().__init__()
 
-        # 83x100
-        self.observation_space = spaces.Box(low=-50, high=1000, shape=(4,), dtype=np.float16)
+        if env_config == 1:
+            self.observation_space = spaces.Box(low=-50, high=1000, shape=(4,), dtype=np.float16)
+        else:
+            self.observation_space = spaces.Box(low=-50, high=1000, shape=(6,), dtype=np.float16)
 
         # 0: flap, 1: do nothing
         self.action_space = spaces.Discrete(2)
 
         # Configurations
+        self.env_config = env_config
         self.SCREEN_WIDTH = 800
         self.SCREEN_HEIGHT = 600
         self.SCREEN_SIZE = (self.SCREEN_WIDTH, self.SCREEN_HEIGHT)
@@ -172,6 +191,7 @@ class FlappyBirdMlpLocalEnv(gym.Env):
         self.grounds = None
         self.score = 0
         self.game_over = False
+        self.next_pipe = None
 
 
         pygame.init()
@@ -247,20 +267,30 @@ class FlappyBirdMlpLocalEnv(gym.Env):
             self.game_over = True
             reward = -10
 
+
         return self.get_observation(), reward, self.game_over, False , {}
 
     def get_observation(self):
-        next_pipe = None
+
         for sprite in self.sprites:
             if isinstance(sprite,Pipe):
                 if not sprite.is_passed():
-                    next_pipe = sprite
+                    self.next_pipe = sprite
                     break
+        if self.env_config == 2:
+            return np.array([
+                self.bird.rect.y, # Kuşun y eksenindeki konumu
+                format(self.bird.flap, ".2f"), # Kuşun flap değeri
+                self.next_pipe.rect.x - self.bird.rect.x, # Kuş ile borunun sol tarafının arasındaki x mesafesi
+                self.next_pipe.rect.x + self.next_pipe.rect[2] - self.bird.rect.x, # Kuş ile borunun sağ tarafının arasındaki x mesafesi
+                self.bird.rect.y - (self.next_pipe.rect.y + self.next_pipe.sprite_rect.height), # Kuş ile üst boru arasındaki y mesafesi
+                (self.next_pipe.rect.y + self.next_pipe.sprite_rect.height + self.next_pipe.gap)-self.bird.rect.y # Kuş ile alt boru arasındaki y mesafesi
+            ],dtype=np.float16)
         return np.array([
             self.bird.rect.y,
             format(self.bird.flap, ".2f"),
-            next_pipe.rect.x - self.bird.rect.x,
-            self.bird.rect.y-next_pipe.rect.center[1]
+            self.next_pipe.rect.x - self.bird.rect.x,
+            self.bird.rect.y-self.next_pipe.rect.center[1]
         ],dtype=np.float16)
 
     def render(self,mode="human"):
@@ -273,6 +303,31 @@ class FlappyBirdMlpLocalEnv(gym.Env):
 
             self.screen.fill(0)
             self.sprites.draw(self.screen)
+            if self.next_pipe and 0==1:
+                # Üst borunun alt köşeleri
+                top_pipe_bottom_left = (
+                self.next_pipe.rect.x, self.next_pipe.rect.y + self.next_pipe.sprite_rect.height)
+                top_pipe_bottom_right = (self.next_pipe.rect.x + self.next_pipe.sprite_rect.width,
+                                         self.next_pipe.rect.y + self.next_pipe.sprite_rect.height)
+
+                pygame.draw.circle(self.screen, (255, 0, 0), top_pipe_bottom_left, 10)  # Üst borunun alt sol köşesi
+                pygame.draw.circle(self.screen, (255, 0, 0), top_pipe_bottom_right, 10)  # Üst borunun alt sağ köşesi
+
+                pygame.draw.circle(self.screen, (255, 255, 255), (self.next_pipe.rect.x+ self.next_pipe.rect[2],self.next_pipe.rect.y + self.next_pipe.sprite_rect.height), 50)  # Üst borunun alt sağ köşesi
+
+                pygame.draw.circle(self.screen, (0, 255, 255), (self.next_pipe.rect.x ,
+                                                                  self.SCREEN_HEIGHT //2),
+                                   50)  # Üst borunun alt sağ köşesi
+
+
+                # Alt borunun üst köşeleri
+                bottom_pipe_top_left = (
+                self.next_pipe.rect.x, self.next_pipe.rect.y + self.next_pipe.sprite_rect.height + self.next_pipe.gap)
+                bottom_pipe_top_right = (self.next_pipe.rect.x + self.next_pipe.sprite_rect.width,
+                                         self.next_pipe.rect.y + self.next_pipe.sprite_rect.height + self.next_pipe.gap)
+
+                pygame.draw.circle(self.screen, (255, 0, 0), bottom_pipe_top_left, 10)  # Alt borunun üst sol köşesi
+                pygame.draw.circle(self.screen, (255, 0, 0), bottom_pipe_top_right, 10)  # Alt borunun üst sağ köşesi
             pygame.display.flip()
             self.clock.tick(self.SCREEN_FPS)
 
@@ -304,13 +359,12 @@ if __name__ == "__main__":
     obs = env.reset()
     for i in range(10000):
         #action = env.action_space.sample()
-        if i % 45 == 0:
+        if i % 40 == 0:
             action = 0
         else:
             action = 1
         env.render()
         obs, reward, done, _ , info = env.step(action)
-        time.sleep(0.1)
         if done:
             print("Game Over")
             env.reset()

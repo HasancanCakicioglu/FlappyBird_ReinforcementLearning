@@ -35,14 +35,12 @@ DEFAULT_HYPERPARAMS = {
 
 def sample_ppo_params(trial: optuna.Trial) -> dict:
     """Sampler for PPO hyperparameters."""
-    learning_rate = trial.suggest_float("learning_rate", 1e-5, 1, log=True)
-    batch_size = trial.suggest_int("batch_size", 32, 256, log=True)
+    learning_rate = trial.suggest_float("learning_rate", 0.000001, 0.001, log=True)
     ent_coef = trial.suggest_float("ent_coef", 0.0001, 0.1, log=True)
     gamma = trial.suggest_float("gamma", 0.9, 0.999, log=True)
 
     return {
         "learning_rate": learning_rate,
-        "batch_size": batch_size,
         "ent_coef": ent_coef,
         "gamma": gamma
     }
